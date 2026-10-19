@@ -23,28 +23,31 @@ app.get('/sandboxes/:id', (req, res) => {
   });
 });
 
-// 4. تنفيذ الأكواد بصيغة الحدث المدمج المقبولة لدى n8n
+// 4. التنفيذ بصيغة مصفوفة الأحداث الصحيحة والمدعومة من Zod في n8n
 app.post('/sandboxes/:id/executions', (req, res) => {
   const { code } = req.body;
-  let output = "success";
-  let errorMsg = "";
+  let output = "success\n";
+  let hasError = false;
 
   try {
     if (code) {
       const resVal = eval(code);
-      output = typeof resVal === 'object' ? JSON.stringify(resVal) : String(resVal || "success");
+      output = (typeof resVal === 'object' ? JSON.stringify(resVal) : String(resVal || "success")) + "\n";
     }
   } catch (err) {
-    errorMsg = err.message;
+    output = err.message + "\n";
+    hasError = true;
   }
 
-  // إرجاع مصفوفة تحتوي على حدث التنفيذ المدمج المطلوب
+  // الهيكل النهائي الدقيق المكون من الأحداث القياسية
   res.status(200).json([
     {
-      type: "result",
-      stdout: output,
-      stderr: errorMsg,
-      exitCode: errorMsg ? 1 : 0
+      type: "stdout",
+      data: output
+    },
+    {
+      type: "exit",
+      exitCode: hasError ? 1 : 0
     }
   ]);
 });
@@ -56,5 +59,5 @@ app.delete('/sandboxes/:id', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`n8n Final Exec Event Sandbox running on port ${PORT}`);
+  console.log(`Ultimate n8n Sandbox running on port ${PORT}`);
 });
