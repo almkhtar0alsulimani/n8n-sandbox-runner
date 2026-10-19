@@ -24,12 +24,11 @@ app.get('/sandboxes/:id', (req, res) => {
   });
 });
 
-// 4. تنفيذ الأكواد بالهيكل القياسي الدقيق المتوافق مع Zod (يحمل id, status: completed, exitCode, stdout, stderr)
+// 4. تنفيذ الأكواد بصيغة NDJSON Streaming المتوافقة مع Zod في n8n
 app.post('/sandboxes/:id/executions', (req, res) => {
   const { code } = req.body;
   let output = "success";
-  let errorMsg = "";
-  let codeExitCode = 0;
+  let hasError = false;
 
   try {
     if (code) {
@@ -37,28 +36,30 @@ app.post('/sandboxes/:id/executions', (req, res) => {
       output = typeof resVal === 'object' ? JSON.stringify(resVal) : String(resVal || "success");
     }
   } catch (err) {
-    errorMsg = err.message;
-    codeExitCode = 1;
+    output = err.message;
+    hasError = true;
   }
 
-  res.status(200).json({
-    id: "exec-123",
-    status: "completed",
-    exitCode: codeExitCode,
-    stdout: output,
-    stderr: errorMsg
-  });
+  // ضبط الترويسة لتدفق البيانات السطري
+  res.setHeader('Content-Type', 'application/x-ndjson');
+  res.status(200);
+
+  // إرسال حدث المخرجات (stdout) في سطر مستقل
+  res.write(JSON.stringify({ type: "stdout", data: output + "\n" }) + "\n");
+
+  // إرسال حدث الانتهاء (exit) في سطر مستقل
+  res.write(JSON.stringify({ type: "exit", exitCode: hasError ? 1 : 0 }) + "\n");
+
+  res.end();
 });
 
-// 5. الاستعلام عن حالة تنفيذ معين (لتجنب أي خطأ استعلام لاحق)
+// 5. الاستعلام عن تنفيذ معين
 app.get('/sandboxes/:id/executions/:execId', (req, res) => {
-  res.status(200).json({
-    id: req.params.execId,
-    status: "completed",
-    exitCode: 0,
-    stdout: "success",
-    stderr: ""
-  });
+  res.setHeader('Content-Type', 'application/x-ndjson');
+  res.status(200);
+  res.write(JSON.stringify({ type: "stdout", data: "success\n" }) + "\n");
+  res.write(JSON.stringify({ type: "exit", exitCode: 0 }) + "\n");
+  res.end();
 });
 
 // 6. حذف الـ Sandbox
@@ -68,5 +69,5 @@ app.delete('/sandboxes/:id', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Ultimate Robust n8n Sandbox running on port ${PORT}`);
+  console.log(`NDJSON Stream Sandbox running on port ${PORT}`);
 });
