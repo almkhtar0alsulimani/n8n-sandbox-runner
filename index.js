@@ -23,7 +23,7 @@ app.get('/sandboxes/:id', (req, res) => {
   });
 });
 
-// 4. تنفيذ الأكواد وإرجاع مصفوفة الأحداث (Exec Events Array) المتوافقة مع n8n
+// 4. تنفيذ الأكواد بصيغة الحدث المدمج المقبولة لدى n8n
 app.post('/sandboxes/:id/executions', (req, res) => {
   const { code } = req.body;
   let output = "success";
@@ -38,14 +38,12 @@ app.post('/sandboxes/:id/executions', (req, res) => {
     errorMsg = err.message;
   }
 
-  // إرجاع مصفوفة الأحداث القياسية التي يتوقعها محقق n8n
+  // إرجاع مصفوفة تحتوي على حدث التنفيذ المدمج المطلوب
   res.status(200).json([
     {
-      type: "stdout",
-      data: output + "\n"
-    },
-    {
-      type: "exit",
+      type: "result",
+      stdout: output,
+      stderr: errorMsg,
       exitCode: errorMsg ? 1 : 0
     }
   ]);
@@ -58,5 +56,5 @@ app.delete('/sandboxes/:id', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Final Array-Events Sandbox running on port ${PORT}`);
+  console.log(`n8n Final Exec Event Sandbox running on port ${PORT}`);
 });
