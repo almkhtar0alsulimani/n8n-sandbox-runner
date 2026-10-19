@@ -23,7 +23,7 @@ app.get('/sandboxes/:id', (req, res) => {
   });
 });
 
-// 4. التنفيذ بالهيكل القياسي الصارم الذي تتوقعه n8n تماماً (بدون أي حقول إضافية)
+// 4. تنفيذ الأكواد وإرجاع مصفوفة الأحداث (Exec Events Array) المتوافقة مع n8n
 app.post('/sandboxes/:id/executions', (req, res) => {
   const { code } = req.body;
   let output = "success";
@@ -38,12 +38,17 @@ app.post('/sandboxes/:id/executions', (req, res) => {
     errorMsg = err.message;
   }
 
-  // إرجاع الحقول الأساسية فقط التي تقبلها مكتبة التحقق في n8n
-  res.status(200).json({
-    exitCode: errorMsg ? 1 : 0,
-    stdout: output,
-    stderr: errorMsg
-  });
+  // إرجاع مصفوفة الأحداث القياسية التي يتوقعها محقق n8n
+  res.status(200).json([
+    {
+      type: "stdout",
+      data: output + "\n"
+    },
+    {
+      type: "exit",
+      exitCode: errorMsg ? 1 : 0
+    }
+  ]);
 });
 
 // 5. حذف الـ Sandbox
@@ -53,5 +58,5 @@ app.delete('/sandboxes/:id', (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Final Clean Sandbox running on port ${PORT}`);
+  console.log(`Final Array-Events Sandbox running on port ${PORT}`);
 });
