@@ -11,9 +11,7 @@ app.get('/healthz', (req, res) => {
 // 2. إنشاء الـ Sandbox
 app.post('/sandboxes', (req, res) => {
   res.status(201).json({
-    id: "sbx-local-123",
-    status: "running",
-    created_at: new Date().toISOString()
+    id: "sbx-local-123"
   });
 });
 
@@ -25,50 +23,35 @@ app.get('/sandboxes/:id', (req, res) => {
   });
 });
 
-// 4. تنفيذ الأكواد كاستجابة JSON عادية ومباشرة (وليست بثاً) لتجاوز فحص n8n
+// 4. التنفيذ بالهيكل القياسي الصارم الذي تتوقعه n8n تماماً (بدون أي حقول إضافية)
 app.post('/sandboxes/:id/executions', (req, res) => {
   const { code } = req.body;
-  let output = "";
+  let output = "success";
   let errorMsg = "";
 
   try {
     if (code) {
       const resVal = eval(code);
       output = typeof resVal === 'object' ? JSON.stringify(resVal) : String(resVal || "success");
-    } else {
-      output = "success";
     }
   } catch (err) {
     errorMsg = err.message;
   }
 
-  // إرجاع JSON صريح يتوافق مع توقعات n8n القياسية
+  // إرجاع الحقول الأساسية فقط التي تقبلها مكتبة التحقق في n8n
   res.status(200).json({
-    id: "exec-123",
-    status: errorMsg ? "failed" : "success",
     exitCode: errorMsg ? 1 : 0,
-    exit_code: errorMsg ? 1 : 0,
     stdout: output,
-    stderr: errorMsg,
-    result: output
+    stderr: errorMsg
   });
 });
 
 // 5. حذف الـ Sandbox
 app.delete('/sandboxes/:id', (req, res) => {
-  res.status(200).json({ message: "Sandbox deleted" });
-});
-
-// استقبال احتياطي لأي مسار آخر
-app.all('*', (req, res) => {
-  res.status(200).json({
-    status: "running",
-    exitCode: 0,
-    stdout: "success"
-  });
+  res.status(200).json({ message: "deleted" });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`n8n Simple JSON Sandbox running on port ${PORT}`);
+  console.log(`Final Clean Sandbox running on port ${PORT}`);
 });
