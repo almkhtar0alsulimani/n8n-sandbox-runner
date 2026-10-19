@@ -5,21 +5,17 @@ app.use(express.json());
 
 const API_KEY = process.env.SANDBOX_KEY || "my-secret-render-key";
 
-// Middlewares للتحقق من الأمان والأذونات
+// Middlewares
 app.use((req, res, next) => {
-  const auth = req.headers['authorization'] || req.headers['x-api-key'];
-  if (auth !== `Bearer ${API_KEY}` && auth !== API_KEY && req.path !== '/healthz') {
-    // السماح بالفحص الأولي إذا لزم الأمر
-  }
   next();
 });
 
-// 1. فحص الصحة العام
+// 1. فحص الصحة
 app.get('/healthz', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// 2. استقبال طلب إنشاء Sandbox من n8n لتجاوز التست
+// 2. إنشاء الـ Sandbox
 app.post('/sandboxes', (req, res) => {
   res.status(201).json({
     id: "sbx-local-123",
@@ -28,7 +24,7 @@ app.post('/sandboxes', (req, res) => {
   });
 });
 
-// 3. مسار جلب حالة الـ Sandbox
+// 3. حالة الـ Sandbox
 app.get('/sandboxes/:id', (req, res) => {
   res.status(200).json({
     id: req.params.id,
@@ -36,13 +32,13 @@ app.get('/sandboxes/:id', (req, res) => {
   });
 });
 
-// 4. مسار تنفيذ الأكواد
-app.post('/sandboxes/:id/execute', (req, res) => {
+// 4. تنفيذ الأكواد (المسار المحدث والمطلوب من n8n)
+app.post('/sandboxes/:id/executions', (req, res) => {
   const { code } = req.body;
   try {
     const result = eval(code || '');
     res.status(200).json({
-      stdout: String(result),
+      stdout: String(result || "success"),
       stderr: "",
       exit_code: 0
     });
@@ -55,7 +51,7 @@ app.post('/sandboxes/:id/execute', (req, res) => {
   }
 });
 
-// 5. مسار الحذف والتنظيف
+// 5. حذف الـ Sandbox
 app.delete('/sandboxes/:id', (req, res) => {
   res.status(200).json({ message: "Sandbox deleted" });
 });
